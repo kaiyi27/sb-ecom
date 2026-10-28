@@ -24,4 +24,9 @@ public class Category {
     public void setCategoryId(Long categoryId) {
         this.categoryId = categoryId;
     }
+
+    @Override
+    public String toString() {
+        return categoryId + " " + categoryName;
+    }
 }
