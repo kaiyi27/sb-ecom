@@ -23,11 +23,14 @@ public class CategoryServiceImpl implements CategoryService{
     }
 
     @Override
-    public void deleteCategory(Long categoryId) {
+    public String deleteCategory(Long categoryId) {
         for (int i = 0; i < categories.size(); ++i) {
-            if (categories.get(i).getCategoryId() == categoryId) {
+            Long id = categories.get(i).getCategoryId();
+            if (id.equals(categoryId)) {
                 categories.remove(i);
+                return "Category id: " + id + " deleted successfully";
             }
         }
+        return "There are no category with id " + categoryId + ". Failed to delete!";
     }
 }
