@@ -24,12 +24,12 @@ public class CategoryController {
     @PostMapping("/api/admin/category")
     public String createCategory(@RequestBody Category category) {
         categoryService.createCategory(category);
-        return "Category: " +  category.toString() + " added successfully!";
+        return "Category id: " +  category.getCategoryId() + " added successfully!";
     }
 
     @DeleteMapping("/api/admin/categories/{categoryId}")
     public String deleteCategory(@PathVariable Long categoryId) {
         categoryService.deleteCategory(categoryId);
-        return "Category " +  categoryId + " deleted successfully!";
+        return "Category id: " +  categoryId + " deleted successfully!";
     }
 }
