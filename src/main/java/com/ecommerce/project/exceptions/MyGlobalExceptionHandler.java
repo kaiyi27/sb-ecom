@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
-public class MyGlobalExeceptionHandler {
+public class MyGlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Map<String, String> myMethodArgumentNotValidException(MethodArgumentNotValidException e) {
