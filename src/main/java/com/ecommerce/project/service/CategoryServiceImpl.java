@@ -44,10 +44,17 @@ public class CategoryServiceImpl implements CategoryService{
 
     @Override
     public String updateCategory(Long categoryId, Category updatedCategory) {
+        String updatedCategoryName = updatedCategory.getCategoryName();
+        
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
 
-        category.setCategoryName(updatedCategory.getCategoryName());
+        Category savedCategory = categoryRepository.findByCategoryName(updatedCategoryName);
+        if (!category.getCategoryName().equals(updatedCategoryName) && savedCategory != null) {
+            throw new APIException("Category with the name " + updatedCategoryName + " already exists!");
+        }
+
+        category.setCategoryName(updatedCategoryName);
         categoryRepository.save(category);
 
         return "Category id: " + categoryId + " updated successfully!";
