@@ -32,13 +32,19 @@ public class CategoryServiceImpl implements CategoryService{
         if (categories.isEmpty()) {
             throw new APIException("There is no category created yet!");
         }
-        
+
         List<CategoryDTO> categoryDTOS = categories.stream()
                 .map(category -> modelMapper.map(category, CategoryDTO.class))
                 .toList();
 
         CategoryResponse categoryResponse = new CategoryResponse();
+
         categoryResponse.setContent(categoryDTOS);
+        categoryResponse.setPageNumber(categoryPage.getNumber());
+        categoryResponse.setPageSize(categoryPage.getSize());
+        categoryResponse.setTotalElements(categoryPage.getTotalElements());
+        categoryResponse.setTotalPages(categoryPage.getTotalPages());
+        categoryResponse.setLastPage(categoryPage.isLast());
 
         return categoryResponse;
     }
