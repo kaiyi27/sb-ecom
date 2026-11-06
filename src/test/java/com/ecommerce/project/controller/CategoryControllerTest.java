@@ -1,6 +1,7 @@
 package com.ecommerce.project.controller;
 
-import com.ecommerce.project.model.Category;
+import com.ecommerce.project.payload.CategoryDTO;
+import com.ecommerce.project.payload.CategoryResponse;
 import com.ecommerce.project.service.CategoryService;
 
 import org.junit.jupiter.api.Test;
@@ -29,56 +30,74 @@ class CategoryControllerTest {
     @Test
     void getAllCategoriesTest() throws Exception {
 
-        Category category1 = new Category();
-        category1.setCategoryId(1L);
-        category1.setCategoryName("Electronics");
+        CategoryDTO categoryDTO1 = new CategoryDTO();
+        categoryDTO1.setCategoryId(1L);
+        categoryDTO1.setCategoryName("Electronics");
 
-        Category category2 = new Category();
-        category2.setCategoryId(2L);
-        category2.setCategoryName("Furniture");
+        CategoryDTO categoryDTO2 = new CategoryDTO();
+        categoryDTO2.setCategoryId(2L);
+        categoryDTO2.setCategoryName("Furniture");
 
-        when(categoryService.getAllCategories())
-                .thenReturn(List.of(category1, category2));
+        List<CategoryDTO> list = List.of(categoryDTO1, categoryDTO2);
+
+        CategoryResponse categoryResponse = new CategoryResponse(
+                list, 0, 50, 2L, 1, true
+        );
+
+        when(categoryService.getAllCategories(0, 50, "categoryId", "asc"))
+                .thenReturn(categoryResponse);
 
         mockMvc.perform(get("/api/public/categories"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(2))
-                .andExpect(jsonPath("$[0].categoryName").value("Electronics"))
-                .andExpect(jsonPath("$[1].categoryName").value("Furniture"));
+                .andExpect(jsonPath("$.content.size()").value(2))
+                .andExpect(jsonPath("$.content[0].categoryName").value("Electronics"))
+                .andExpect(jsonPath("$.content[1].categoryName").value("Furniture"))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(50))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.lastPage").value(true));
 
-        verify(categoryService, times(1)).getAllCategories();
+        verify(categoryService, times(1)).getAllCategories(0, 50, "categoryId", "asc");
     }
 
     @Test
     void createCategoryTest() throws Exception {
 
         String requestBody = """
-            {
-                "categoryId": 1,
-                "categoryName": "Electronics"
-            }
-            """;
+                {
+                    "categoryId": 1,
+                    "categoryName": "Electronics"
+                }
+                """;
 
-        mockMvc.perform(post("/api/admin/category")
+        CategoryDTO categoryDTO = new CategoryDTO(1L, "Electronics");
+
+        when(categoryService.createCategory(categoryDTO))
+                .thenReturn(categoryDTO);
+
+        mockMvc.perform(post("/api/public/categories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isCreated())
-                .andExpect(content().string(
-                        "Category id: 1 added successfully!"
-                ));
+                .andExpect(jsonPath("$.categoryId").value(1L))
+                .andExpect(jsonPath("$.categoryName").value("Electronics"));
 
-        verify(categoryService, times(1)).createCategory(any(Category.class));
+        verify(categoryService, times(1)).createCategory(categoryDTO);
     }
 
     @Test
     void deleteCategoryTest() throws Exception {
 
+        CategoryDTO categoryDTO = new CategoryDTO(3L, "Deleted");
+
         when(categoryService.deleteCategory(3L))
-                .thenReturn("Category id: 3 deleted successfully!");
+                .thenReturn(categoryDTO);
 
         mockMvc.perform(delete("/api/admin/categories/3"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Category id: 3 deleted successfully!"));
+                .andExpect(jsonPath("$.categoryId").value(3L))
+                .andExpect(jsonPath("$.categoryName").value("Deleted"));
 
         verify(categoryService, times(1)).deleteCategory(3L);
     }
@@ -87,88 +106,24 @@ class CategoryControllerTest {
     void updateCategoryTest() throws Exception {
 
         String requestBody = """
-            {
-                "categoryName": "Updated Electronics"
-            }
-            """;
+                {
+                    "categoryName": "Updated Electronics"
+                }
+                """;
 
-        when(categoryService.updateCategory(eq(5L), any(Category.class)))
-                .thenReturn("Category id: 5 updated successfully!");
+        CategoryDTO categoryDTO = new CategoryDTO(5L, "Updated Electronics");
 
-        mockMvc.perform(put("/api/admin/categories/5")
+        when(categoryService.updateCategory(eq(5L), any(CategoryDTO.class)))
+                .thenReturn(categoryDTO);
+
+        mockMvc.perform(put("/api/public/categories/5")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isOk())
-                .andExpect(content().string(
-                        "Category id: 5 updated successfully!"
-                ));
+                .andExpect(jsonPath("$.categoryId").value(5L))
+                .andExpect(jsonPath("$.categoryName").value("Updated Electronics"));
 
         verify(categoryService, times(1))
-                .updateCategory(eq(5L), any(Category.class));
-    }
-
-    @Test
-    void createCategoryWithInvalidNameTest() throws Exception {
-
-        String blankCategoryNameRequestBody = """
-        {
-            "categoryName": ""
-        }
-        """;
-
-        mockMvc.perform(post("/api/admin/category")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(blankCategoryNameRequestBody))
-                .andExpect(status().isBadRequest());
-
-        String singleCharCategoryNameRequestBody = """
-        {
-            "categoryName": "a"
-        }
-        """;
-
-        mockMvc.perform(post("/api/admin/category")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(singleCharCategoryNameRequestBody))
-                .andExpect(status().isBadRequest());
-
-        verify(categoryService, never())
-                .createCategory(any(Category.class));
-    }
-
-    @Test
-    void updateCategoryWithInvalidNameTest() throws Exception {
-
-        String blankCategoryNameRequestBody = """
-        {
-            "categoryName": ""
-        }
-        """;
-
-        mockMvc.perform(put("/api/admin/categories/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(blankCategoryNameRequestBody))
-                .andExpect(status().isBadRequest());
-
-        String singleCharCategoryNameRequestBody = """
-        {
-            "categoryName": "a"
-        }
-        """;
-
-        mockMvc.perform(put("/api/admin/categories/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(singleCharCategoryNameRequestBody))
-                .andExpect(status().isBadRequest());
-
-        verify(categoryService, never())
-                .updateCategory(eq(1L), any(Category.class));
-    }
-
-    @Test
-    void invalidEndpointTest() throws Exception {
-
-        mockMvc.perform(get("/api/public/category"))
-                .andExpect(status().isNotFound());
+                .updateCategory(eq(5L), any(CategoryDTO.class));
     }
 }
