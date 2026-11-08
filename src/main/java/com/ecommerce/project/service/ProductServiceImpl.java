@@ -1,5 +1,6 @@
 package com.ecommerce.project.service;
 
+import com.ecommerce.project.exceptions.APIException;
 import com.ecommerce.project.exceptions.ResourceNotFoundException;
 import com.ecommerce.project.model.Category;
 import com.ecommerce.project.model.Product;
@@ -42,6 +43,13 @@ public class ProductServiceImpl implements ProductService{
 
         Product product = modelMapper.map(productDTO, Product.class);
 
+        Product productFromDb = productRepository.findByProductNameAndCategoryCategoryId(
+                product.getProductName(), category.getCategoryId());
+
+        if (productFromDb != null) {
+            throw new APIException("Product with the name " + product.getProductName() + " already exists!");
+        }
+
         double specialPrice = product.getPrice() * (1.0 - product.getDiscount() * 0.01);
 
         product.setCategory(category);
@@ -56,6 +64,11 @@ public class ProductServiceImpl implements ProductService{
     @Override
     public ProductResponse getAllProducts() {
         List<Product> products = productRepository.findAll();
+
+        if (products.isEmpty()) {
+            throw new APIException("There is no product created yet!");
+        }
+
         List<ProductDTO> productDTOS = products.stream()
                 .map(product -> modelMapper.map(product, ProductDTO.class))
                 .toList();
@@ -72,6 +85,11 @@ public class ProductServiceImpl implements ProductService{
                 .orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
 
         List<Product> products = productRepository.findByCategoryOrderByPriceAsc(category);
+
+        if (products.isEmpty()) {
+            throw new APIException("There is no product associated with the category " + category.getCategoryName());
+        }
+
         List<ProductDTO> productDTOS = products.stream()
                 .map(product -> modelMapper.map(product, ProductDTO.class))
                 .toList();
@@ -85,6 +103,11 @@ public class ProductServiceImpl implements ProductService{
     @Override
     public ProductResponse searchByKeyword(String keyword) {
         List<Product> products = productRepository.findByProductNameContainsIgnoreCase(keyword);
+
+        if (products.isEmpty()) {
+            throw new APIException("There is no product name with the keyword " + keyword);
+        }
+
         List<ProductDTO> productDTOS = products.stream()
                 .map(product -> modelMapper.map(product, ProductDTO.class))
                 .toList();
@@ -100,13 +123,23 @@ public class ProductServiceImpl implements ProductService{
         Product existingProduct = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "productId", productId));
 
+        Product product = modelMapper.map(productDTO, Product.class);
+        String productName = product.getProductName();
+
+        Product productFromDb = productRepository.findByProductNameAndCategoryCategoryId(
+                productName, existingProduct.getCategory().getCategoryId());
+
+        if (!existingProduct.getProductName().equals(productName) && productFromDb != null) {
+            throw new APIException("Product with the name " + productName + " already exists!");
+        }
+
         double specialPrice = productDTO.getPrice() * (1.0 - productDTO.getDiscount() * 0.01);
 
-        existingProduct.setProductName(productDTO.getProductName());
-        existingProduct.setDescription(productDTO.getDescription());
-        existingProduct.setQuantity(productDTO.getQuantity());
-        existingProduct.setDiscount(productDTO.getDiscount());
-        existingProduct.setPrice(productDTO.getPrice());
+        existingProduct.setProductName(productName);
+        existingProduct.setDescription(product.getDescription());
+        existingProduct.setQuantity(product.getQuantity());
+        existingProduct.setDiscount(product.getDiscount());
+        existingProduct.setPrice(product.getPrice());
         existingProduct.setSpecialPrice(specialPrice);
 
         Product savedProduct = productRepository.save(existingProduct);
